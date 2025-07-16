@@ -17,20 +17,21 @@ WORKDIR /app
 # Install OS dependencies for pip + Python
 RUN apt-get update && apt-get install -y build-essential gcc curl && rm -rf /var/lib/apt/lists/*
 
-# Copy backend and frontend
-COPY study_assistant_backend ./study_assistant_backend
-COPY --from=frontend /app/project/dist ./study_assistant_backend/build
+# Copy backend and frontend build
+COPY study_assistant_backend /app/study_assistant_backend
+COPY --from=frontend /app/project/dist /app/study_assistant_backend/build
 
-COPY requirements.txt ./
+# Copy requirements to root
+COPY requirements.txt /app/
 
-# ✅ Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install backend dependencies
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Expose port
+# Expose Flask port
 EXPOSE 5000
 
-# Set the working directory
+# Set working directory
 WORKDIR /app/study_assistant_backend
 
-# Run the app with Gunicorn
+# Use Gunicorn to serve app.py
 CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
