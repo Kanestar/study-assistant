@@ -9,29 +9,28 @@ WORKDIR /app/project
 
 RUN npm install && npm run build
 
-# Stage 2: Setup backend + serve frontend
-FROM python:3.11-slim as backend
+# Stage 2: Backend with built frontend
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install OS dependencies for pip + Python
+# Install system dependencies
 RUN apt-get update && apt-get install -y build-essential gcc curl && rm -rf /var/lib/apt/lists/*
 
-# Copy backend and frontend build
+# Copy backend code
 COPY study_assistant_backend /app/study_assistant_backend
+
+# Copy frontend build into backend
 COPY --from=frontend /app/project/dist /app/study_assistant_backend/build
 
-# Copy requirements to root
-COPY requirements.txt /app/
+# Copy root requirements.txt (if it's in the root)
+COPY requirements.txt /app/requirements.txt
 
-# Install backend dependencies
+# Install Python dependencies
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Expose Flask port
-EXPOSE 5000
-
-# Set working directory
+# Set working directory to backend
 WORKDIR /app/study_assistant_backend
 
-# Use Gunicorn to serve app.py
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+# Run app using Gunicorn (prod-safe) or fallback to Flask for dev
+CMD ["python", "app.py"]
