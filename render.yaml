@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: study-assistant-backend
+    env: python
+    buildCommand: |
+      cd study_assistant_backend
+      pip install -r requirements.txt
+      cd ../project
+      npm install
+      npm run build
+      mv dist ../study_assistant_backend/build
+    startCommand: python study_assistant_backend/app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
