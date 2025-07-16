@@ -1,37 +1,32 @@
-# Use Node.js for building frontend
-FROM node:18 as frontend
+# Step 1: Build the React frontend
+FROM node:20 AS frontend-builder
 
 WORKDIR /app
 
-# Copy only frontend files and install dependencies
+# Copy frontend files
 COPY project ./project
 WORKDIR /app/project
+
+# Install and build React app
 RUN npm install && npm run build
 
-# Use Python for backend
-FROM python:3.10-slim as backend
+# Step 2: Set up the Python backend
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
 # Copy backend files
-COPY study_assistant_backend ./study_assistant_backend
+COPY . .
+
+# Copy built frontend from previous stage to /app/dist
+COPY --from=frontend-builder /app/project/dist ./dist
 
 # Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install -r study_assistant_backend/requirements.txt
-
-# Copy built frontend from previous stage
-COPY --from=frontend /app/project/dist ./study_assistant_backend/build
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV FLASK_APP=study_assistant_backend/app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=8000
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose port
-EXPOSE 8000
+EXPOSE 5000
 
-# Run Flask
-CMD ["flask", "run"]
+# Run with Gunicorn in production mode
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
